@@ -4,6 +4,31 @@
 ## Loading and preprocessing the data
 
 ```r
+library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following object is masked from 'package:stats':
+## 
+##     filter
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
+library(tidyr)
+```
+
+```
+## Warning: package 'tidyr' was built under R version 3.1.2
+```
+
+```r
 #setwd('~/Projects/Coursera/Reproductive Data/RepData_PeerAssessment1/')
 data <- data.frame(read.csv(unzip('activity.zip', "activity.csv")))
 #Aggregate number of steps by date
@@ -77,7 +102,7 @@ for(i in 1:nrow(data)) {
 } 
 
 byDayNoNA <- aggregate(steps ~ date, dataNoNA, sum)
-hist(byDayNoNA$steps, breaks=10, main="Histogram of steps taken each day (NA replaced)", xlab="Steps in a day")
+hist(byDayNoNA$steps, breaks=10, main="Histogram of steps taken each day (missing values replaced)", xlab="Steps in a day")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
@@ -100,3 +125,28 @@ median(byDayNoNA$steps)
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```r
+dataNoNA <- mutate(dataNoNA, weekday = format(strptime(date, "%Y-%M-%d"), "%u"))
+dataNoNA <- mutate(dataNoNA, weekday = ifelse(weekday>5, "weekend", "weekday"))
+
+
+#weekdays <- subset(dataNoNA, weekday=='weekday')
+weekends <- subset(dataNoNA, weekday=='weekend')
+weekends <- aggregate(steps ~ interval, weekends, sum)
+weekends$steps <- weekends$steps/nrow(weekends)
+
+weekdays <- subset(dataNoNA, weekday=='weekday')
+weekdays <- aggregate(steps ~ interval, weekdays, sum)
+weekdays$steps <- weekdays$steps/nrow(weekdays)
+
+plot(weekdays$interval, weekdays$steps, type='l', ylab="Average number of steps (weekdays)", xlab="5 min interval of the day")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
+
+```r
+plot(weekends$interval, weekends$steps, type='l', ylab="Average number of steps (weekends)", xlab="5 min interval of the day")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-2.png) 
