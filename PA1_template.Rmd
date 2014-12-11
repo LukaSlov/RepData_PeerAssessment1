@@ -2,19 +2,23 @@
 title: "Reproducible Research: Peer Assessment 1"
 output: 
   html_document:
-    keep_md: true
+  keep_md: true
 ---
 
-
 ## Loading and preprocessing the data
-```{r}
-library(dplyr)
+To manipulate data easier I will be using tidyr and dplyr libraries. First I load activity data from a zip file into a data.frame date. In the next step I create two new variables that I'll use to answer later questions, one holds aggregate of number of steps by day (byDay) and the second one average number of steps by the interval of the day.
+```{r  warning=FALSE, message=FALSE}
+#Using the tidyr library to manipulate data
 library(tidyr)
-#setwd('~/Projects/Coursera/Reproductive Data/RepData_PeerAssessment1/')
+library(dplyr)
+
+#One line unzip, read csv and make a data frame
 data <- data.frame(read.csv(unzip('activity.zip', "activity.csv")))
-#Aggregate number of steps by date
+
+#Aggregate number of steps by date (used for histogram 1)
 byDay <- aggregate(steps ~ date, data, sum)
-#Average number of steps by interval
+
+#A table with Average number of steps by interval
 byInterval <- aggregate(steps ~ interval, data, sum)
 byInterval$steps <- byInterval$steps/nrow(byInterval)
 ```
@@ -23,22 +27,27 @@ byInterval$steps <- byInterval$steps/nrow(byInterval)
 ## What is mean total number of steps taken per day?
 ```{r}
 hist(byDay$steps, breaks=10, main="Histogram of steps taken each day", xlab="Steps in a day")
-mean(byDay$steps)
-median(byDay$steps)
+meanByDaySteps <- mean(byDay$steps)
+medianByDaySteps <- median(byDay$steps)
 ```
+First I draw the total number of steps taken each day and then calculate the mean (`r sprintf("%.2f",meanByDaySteps) `) and median (`r medianByDaySteps`).
 
 ## What is the average daily activity pattern?
 ```{r}
-plot(byInterval$interval, byInterval$steps, type='l', ylab="Average number of steps", xlab="5min interval of the day")
+plot(byInterval$interval, byInterval$steps, type='l', ylab="Average number of steps", xlab="5-min interval of the day")
 maxObservation <- which.max( byInterval$steps )
-byInterval$steps[maxObservation]
-```
+maxInterval <- byInterval$interval[maxObservation]
 
+maxObservation
+maxInterval
+```
+To answer this question I first draw a time series plot, of the 5-minute interval and then calculate which interval contains the maximum number of steps (interval `r maxInterval `, observation `r maxObservation`).
 
 ## Imputing missing values
 ```{r}
 #NA values
-sum(is.na(data))
+NAValues <- sum(is.na(data))
+NAValues
 
 dataNoNA <- data
 for(i in 1:nrow(data)) {
@@ -49,17 +58,20 @@ for(i in 1:nrow(data)) {
 } 
 
 byDayNoNA <- aggregate(steps ~ date, dataNoNA, sum)
-hist(byDayNoNA$steps, breaks=10, main="Histogram of steps taken each day (missing values replaced)", xlab="Steps in a day")
-mean(byDayNoNA$steps)
-median(byDayNoNA$steps)
-```
 
+hist(byDayNoNA$steps, breaks=10, main="Histogram of steps taken each day (missing values replaced)", xlab="Steps in a day")
+meanByDayNoNA <- mean(byDayNoNA$steps)
+medianByDayNoNA <- median(byDayNoNA$steps)
+
+meanByDayNoNA
+medianByDayNoNA
+```
+In this step I replaced the missing step values with average step value for that interval. The average step values are stored in byInterval variable. There were `r NAValues` missing values that were replaced. The new mean was `r sprintf("%.2f", meanByDayNoNA)` and median `r sprintf("%d",medianByDayNoNA)`.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 ```{r}
 dataNoNA <- mutate(dataNoNA, weekday = format(strptime(date, "%Y-%M-%d"), "%u"))
 dataNoNA <- mutate(dataNoNA, weekday = ifelse(weekday>5, "weekend", "weekday"))
-
 
 #weekdays <- subset(dataNoNA, weekday=='weekday')
 weekends <- subset(dataNoNA, weekday=='weekend')
@@ -74,3 +86,4 @@ plot(weekdays$interval, weekdays$steps, type='l', ylab="Average number of steps 
 
 plot(weekends$interval, weekends$steps, type='l', ylab="Average number of steps (weekends)", xlab="5 min interval of the day")
 ```
+In this last part I separated the observations to weekends and weekdays and ploted them out for comparison.
