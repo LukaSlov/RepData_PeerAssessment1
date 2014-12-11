@@ -21,6 +21,17 @@ byDay <- aggregate(steps ~ date, data, sum)
 #A table with Average number of steps by interval
 byInterval <- aggregate(steps ~ interval, data, sum)
 byInterval$steps <- byInterval$steps/nrow(byInterval)
+
+#calendar, num of weekdays, num weekends, to use for the last plot
+calendar <- unique(data$date)
+weekends <- 0
+weekdays <- 0
+
+for(i in 0:length(calendar)){
+  dow <- format(strptime(calendar[i], "%Y-%M-%d"), "%u")
+  ifelse(dow>5, weekends <- weekends+1, weekdays <- weekdays+1)
+}
+
 ```
 
 
@@ -70,20 +81,16 @@ In this step I replaced the missing step values with average step value for that
 
 ## Are there differences in activity patterns between weekdays and weekends?
 ```{r}
-dataNoNA <- mutate(dataNoNA, weekday = format(strptime(date, "%Y-%M-%d"), "%u"))
-dataNoNA <- mutate(dataNoNA, weekday = ifelse(weekday>5, "weekend", "weekday"))
+dataNoNA <- mutate(dataNoNA, day = format(strptime(date, "%Y-%M-%d"), "%u"))
+dataNoNA <- mutate(dataNoNA, day = ifelse(day>5, "weekend", "weekday"))
+dataNoNA <- aggregate(steps ~ interval + day, dataNoNA, sum)
 
-#weekdays <- subset(dataNoNA, weekday=='weekday')
-weekends <- subset(dataNoNA, weekday=='weekend')
-weekends <- aggregate(steps ~ interval, weekends, sum)
-weekends$steps <- weekends$steps/nrow(weekends)
 
-weekdays <- subset(dataNoNA, weekday=='weekday')
-weekdays <- aggregate(steps ~ interval, weekdays, sum)
-weekdays$steps <- weekdays$steps/nrow(weekdays)
+dataNoNA <- mutate(dataNoNA, steps = ifelse(day=="weekend", steps/weekends/5, steps/weekdays/5))
 
-plot(weekdays$interval, weekdays$steps, type='l', ylab="Average number of steps (weekdays)", xlab="5 min interval of the day")
-
-plot(weekends$interval, weekends$steps, type='l', ylab="Average number of steps (weekends)", xlab="5 min interval of the day")
+library(lattice)
+xyplot(steps ~ interval| factor(day), data=dataNoNA, type='l', layout=c(1, 2))
 ```
+
+
 In this last part I separated the observations to weekends and weekdays and ploted them out for comparison.
