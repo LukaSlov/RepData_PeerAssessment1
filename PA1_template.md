@@ -1,41 +1,38 @@
-# Reproducible Research: Peer Assessment 1
-
+---
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  pdf_document: default
+  keep_md: yes
+  html_document: null
+---
 
 ## Loading and preprocessing the data
+To manipulate data easier I will be using tidyr and dplyr libraries. First I load activity data from a zip file into a data.frame date. In the next step I create two new variables that I'll use to answer later questions, one holds aggregate of number of steps by day (byDay) and the second one average number of steps by the interval of the day.
 
 ```r
-library(dplyr)
-```
-
-```
-## 
-## Attaching package: 'dplyr'
-## 
-## The following object is masked from 'package:stats':
-## 
-##     filter
-## 
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union
-```
-
-```r
+#Using the tidyr library to manipulate data
 library(tidyr)
-```
+library(dplyr)
 
-```
-## Warning: package 'tidyr' was built under R version 3.1.2
-```
-
-```r
-#setwd('~/Projects/Coursera/Reproductive Data/RepData_PeerAssessment1/')
+#One line unzip, read csv and make a data frame
 data <- data.frame(read.csv(unzip('activity.zip', "activity.csv")))
-#Aggregate number of steps by date
+
+#Aggregate number of steps by date (used for histogram 1)
 byDay <- aggregate(steps ~ date, data, sum)
-#Average number of steps by interval
+
+#A table with Average number of steps by interval
 byInterval <- aggregate(steps ~ interval, data, sum)
-byInterval$steps <- byInterval$steps/nrow(byInterval)
+byInterval$steps <- byInterval$steps/length(unique(data$date))
+
+#calendar, num of weekdays, num weekends, to use for the last plot
+calendar <- unique(data$date)
+weekends <- 0
+weekdays <- 0
+
+for(i in 0:length(calendar)){
+  dow <- format(strptime(calendar[i], "%Y-%M-%d"), "%u")
+  ifelse(dow>5, weekends <- weekends+1, weekdays <- weekdays+1)
+}
 ```
 
 
@@ -45,47 +42,39 @@ byInterval$steps <- byInterval$steps/nrow(byInterval)
 hist(byDay$steps, breaks=10, main="Histogram of steps taken each day", xlab="Steps in a day")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-2-1.png) 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png) 
 
 ```r
-mean(byDay$steps)
+meanByDaySteps <- mean(byDay$steps)
+medianByDaySteps <- median(byDay$steps)
 ```
-
-```
-## [1] 10766.19
-```
-
-```r
-median(byDay$steps)
-```
-
-```
-## [1] 10765
-```
+First I draw the total number of steps taken each day and then calculate the mean (10766.19) and median (10765).
 
 ## What is the average daily activity pattern?
 
 ```r
-plot(byInterval$interval, byInterval$steps, type='l', ylab="Average number of steps", xlab="5min interval of the day")
+plot(byInterval$interval, byInterval$steps, type='l', ylab="Average number of steps", xlab="5-min interval of the day")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-3-1.png) 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3-1.png) 
 
 ```r
 maxObservation <- which.max( byInterval$steps )
-byInterval$steps[maxObservation]
+maxInterval <- byInterval$interval[maxObservation]
+maxInterval
 ```
 
 ```
-## [1] 37.94097
+## [1] 835
 ```
-
+To answer this question I first draw a time series plot, of the 5-minute interval and then calculate which interval contains the maximum number of steps (interval 835, observation 104).
 
 ## Imputing missing values
 
 ```r
 #NA values
-sum(is.na(data))
+NAValues <- sum(is.na(data))
+NAValues
 ```
 
 ```
@@ -102,51 +91,47 @@ for(i in 1:nrow(data)) {
 } 
 
 byDayNoNA <- aggregate(steps ~ date, dataNoNA, sum)
+
 hist(byDayNoNA$steps, breaks=10, main="Histogram of steps taken each day (missing values replaced)", xlab="Steps in a day")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
 
 ```r
-mean(byDayNoNA$steps)
+meanByDayNoNA <- mean(byDayNoNA$steps)
+medianByDayNoNA <- median(byDayNoNA$steps)
+
+meanByDayNoNA
 ```
 
 ```
-## [1] 9614.069
+## [1] 10581.01
 ```
 
 ```r
-median(byDayNoNA$steps)
+medianByDayNoNA
 ```
 
 ```
 ## [1] 10395
 ```
-
+In this step I replaced the missing step values with average step value for that interval. The average step values are stored in byInterval variable. There were 2304 missing values that were replaced. The new mean was 10581.01 and median 10395.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 ```r
-dataNoNA <- mutate(dataNoNA, weekday = format(strptime(date, "%Y-%M-%d"), "%u"))
-dataNoNA <- mutate(dataNoNA, weekday = ifelse(weekday>5, "weekend", "weekday"))
+dataNoNA <- mutate(dataNoNA, day = format(strptime(date, "%Y-%M-%d"), "%u"))
+dataNoNA <- mutate(dataNoNA, day = ifelse(day>5, "weekend", "weekday"))
+dataNoNA <- aggregate(steps ~ interval + day, dataNoNA, sum)
 
 
-#weekdays <- subset(dataNoNA, weekday=='weekday')
-weekends <- subset(dataNoNA, weekday=='weekend')
-weekends <- aggregate(steps ~ interval, weekends, sum)
-weekends$steps <- weekends$steps/nrow(weekends)
+dataNoNA <- mutate(dataNoNA, steps = ifelse(day=="weekend", steps/weekends, steps/weekdays))
 
-weekdays <- subset(dataNoNA, weekday=='weekday')
-weekdays <- aggregate(steps ~ interval, weekdays, sum)
-weekdays$steps <- weekdays$steps/nrow(weekdays)
-
-plot(weekdays$interval, weekdays$steps, type='l', ylab="Average number of steps (weekdays)", xlab="5 min interval of the day")
+library(lattice)
+xyplot(steps ~ interval| factor(day), data=dataNoNA, type='l', layout=c(1, 2))
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
 
-```r
-plot(weekends$interval, weekends$steps, type='l', ylab="Average number of steps (weekends)", xlab="5 min interval of the day")
-```
 
-![](PA1_template_files/figure-html/unnamed-chunk-5-2.png) 
+In this last part I separated the observations to weekends and weekdays and ploted them out for comparison.

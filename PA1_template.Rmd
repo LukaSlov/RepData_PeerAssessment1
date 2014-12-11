@@ -1,8 +1,9 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-  keep_md: true
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  pdf_document: default
+  keep_md: yes
+  html_document: null
 ---
 
 ## Loading and preprocessing the data
@@ -20,7 +21,7 @@ byDay <- aggregate(steps ~ date, data, sum)
 
 #A table with Average number of steps by interval
 byInterval <- aggregate(steps ~ interval, data, sum)
-byInterval$steps <- byInterval$steps/nrow(byInterval)
+byInterval$steps <- byInterval$steps/length(unique(data$date))
 
 #calendar, num of weekdays, num weekends, to use for the last plot
 calendar <- unique(data$date)
@@ -48,8 +49,6 @@ First I draw the total number of steps taken each day and then calculate the mea
 plot(byInterval$interval, byInterval$steps, type='l', ylab="Average number of steps", xlab="5-min interval of the day")
 maxObservation <- which.max( byInterval$steps )
 maxInterval <- byInterval$interval[maxObservation]
-
-maxObservation
 maxInterval
 ```
 To answer this question I first draw a time series plot, of the 5-minute interval and then calculate which interval contains the maximum number of steps (interval `r maxInterval `, observation `r maxObservation`).
@@ -86,7 +85,7 @@ dataNoNA <- mutate(dataNoNA, day = ifelse(day>5, "weekend", "weekday"))
 dataNoNA <- aggregate(steps ~ interval + day, dataNoNA, sum)
 
 
-dataNoNA <- mutate(dataNoNA, steps = ifelse(day=="weekend", steps/weekends/5, steps/weekdays/5))
+dataNoNA <- mutate(dataNoNA, steps = ifelse(day=="weekend", steps/weekends, steps/weekdays))
 
 library(lattice)
 xyplot(steps ~ interval| factor(day), data=dataNoNA, type='l', layout=c(1, 2))
